@@ -197,3 +197,40 @@ def test_sbatch_failure_exits_non_zero(tmp_path):
             venv_path=str(Path(sys.prefix)),
         )
     assert excinfo.value.code == 1
+
+
+def _schedule_with_sbatch_result(tmp_path, result):
+    with (
+        patch("oellm.main._load_cluster_env"),
+        patch("oellm.main._num_jobs_in_queue", return_value=0),
+        patch("oellm.main.subprocess.run", return_value=result) as run,
+        patch.dict(os.environ, {"EVAL_OUTPUT_DIR": str(tmp_path)}),
+    ):
+        schedule_evals(
+            models="EleutherAI/pythia-70m",
+            tasks="hellaswag",
+            n_shot=0,
+            skip_checks=True,
+            venv_path=str(Path(sys.prefix)),
+        )
+    return run
+
+
+def test_sbatch_without_job_id_exits_non_zero(tmp_path):
+    """sbatch that exits 0 but queues nothing must not look like a submission."""
+    silent = subprocess.CompletedProcess(["sbatch"], 0, stdout="", stderr="")
+    with pytest.raises(SystemExit) as excinfo:
+        _schedule_with_sbatch_result(tmp_path, silent)
+    assert excinfo.value.code == 1
+
+
+def test_sbatch_receives_the_script_path(tmp_path):
+    ok = subprocess.CompletedProcess(
+        ["sbatch"], 0, stdout="Submitted batch job 123\n", stderr=""
+    )
+    run = _schedule_with_sbatch_result(tmp_path, ok)
+    command = run.call_args.args[0]
+    assert command[0] == "sbatch"
+    assert Path(command[1]).name == "submit_evals.sbatch"
+    assert Path(command[1]).exists()
+    assert "input" not in run.call_args.kwargs

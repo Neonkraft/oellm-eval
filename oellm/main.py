@@ -764,22 +764,29 @@ def schedule_evals(
         logging.info("Calling sbatch to launch the evaluations")
         logging.info(f"📜 SLURM logs will be stored in: {slurm_logs_dir}")
 
+        # Pass the script as a file: some sites wrap sbatch in a way that
+        # ignores a script on stdin and exits 0 without submitting anything.
         result = subprocess.run(
-            ["sbatch"],
-            input=sbatch_script,
+            ["sbatch", str(sbatch_script_path)],
             text=True,
             check=True,
             capture_output=True,
             env=os.environ,
         )
+        job_id_match = re.search(r"Submitted batch job (\d+)", result.stdout)
+        if not job_id_match:
+            # Exit code 0 without a job ID means nothing was queued.
+            logging.error("sbatch exited 0 but returned no job ID; no job was submitted.")
+            logging.error(f"sbatch stdout: {result.stdout}")
+            logging.error(f"sbatch stderr: {result.stderr}")
+            logging.error(f"To submit by hand, run: sbatch {sbatch_script_path}")
+            raise SystemExit(1)
         logging.info("Job submitted successfully.")
         logging.info(result.stdout)
-        job_id_match = re.search(r"Submitted batch job (\d+)", result.stdout)
-        if job_id_match:
-            job_id = job_id_match.group(1)
-            logging.info(f"🔍 Monitor job status: squeue -j {job_id}")
-            logging.info(f"📈 View job details: scontrol show job {job_id}")
-            logging.info(f"❌ Cancel job if needed: scancel {job_id}")
+        job_id = job_id_match.group(1)
+        logging.info(f"🔍 Monitor job status: squeue -j {job_id}")
+        logging.info(f"📈 View job details: scontrol show job {job_id}")
+        logging.info(f"❌ Cancel job if needed: scancel {job_id}")
     except subprocess.CalledProcessError as e:
         logging.error(f"Failed to submit job: {e}")
         logging.error(f"sbatch stderr: {e.stderr}")
