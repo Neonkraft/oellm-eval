@@ -68,7 +68,7 @@ meta: # University of Freiburg. No container: use --venv_path (scripts/setup_uv_
   hostname_pattern: "kislogin*"
   EVAL_BASE_DIR: "/work/dlc2workfs2/krishnan-prelude-post-training/oellm-evals-results"
   PARTITION: "mldlc2_gpu-h200"
-  QUEUE_LIMIT: 10
+  QUEUE_LIMIT: 16
   NODES: "1"
 
 ci: # lambda labs
