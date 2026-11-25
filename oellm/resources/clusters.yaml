@@ -64,6 +64,13 @@ ufal:
   NODES: "1"
   NODELIST: "dll-8gpu[1-2],dll-3gpu[1-5],dll-4gpu[3-4],tdll-8gpu[1-2],tdll-3gpu[1-4],tdll-4gpu1"
 
+meta: # University of Freiburg. No container: use --venv_path (scripts/setup_uv_env.sh).
+  hostname_pattern: "kislogin*"
+  EVAL_BASE_DIR: "/work/dlc2workfs2/krishnan-prelude-post-training/oellm-evals-results"
+  PARTITION: "mldlc2_gpu-h200"
+  QUEUE_LIMIT: 10
+  NODES: "1"
+
 ci: # lambda labs
   hostname_pattern:
     - "ip-*"
